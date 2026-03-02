@@ -1,0 +1,20 @@
+# n8n data
+n8n_data/
+
+# Docker
+.env
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Don't ignore the data folder, but note:
+# Be careful not to commit sensitive tokens if you add them to posts.json

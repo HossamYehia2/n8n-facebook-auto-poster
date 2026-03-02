@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "text": "🚀 Exciting news! Check out our latest product update. We've been working hard to bring you the best experience possible!",
+    "imageUrl": "https://example.com/images/product-update.jpg",
+    "posted": false
+  },
+  {
+    "id": 2,
+    "text": "💡 Did you know? Here's a quick tip to make your day more productive. Stay focused and keep pushing forward!",
+    "imageUrl": "",
+    "posted": false
+  },
+  {
+    "id": 3,
+    "text": "🎉 Happy weekend everyone! What are your plans? Share with us in the comments below!",
+    "imageUrl": "https://example.com/images/weekend-vibes.jpg",
+    "posted": false
+  },
+  {
+    "id": 4,
+    "text": "📢 Important announcement coming soon! Stay tuned and follow our page for updates.",
+    "imageUrl": "",
+    "posted": false
+  },
+  {
+    "id": 5,
+    "text": "🌟 Thank you for 10,000 followers! We appreciate each and every one of you. More great content coming your way!",
+    "imageUrl": "https://example.com/images/milestone.jpg",
+    "posted": false
+  }
+]

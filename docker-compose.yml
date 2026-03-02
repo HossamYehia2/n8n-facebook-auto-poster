@@ -1,0 +1,31 @@
+# n8n Docker Compose Setup
+# Run with: docker-compose up -d
+# Access n8n at: http://localhost:5678
+
+version: '3.8'
+
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    container_name: n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      # Basic settings
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=changeme123
+      # Timezone - change to your timezone
+      - GENERIC_TIMEZONE=Africa/Cairo
+      - TZ=Africa/Cairo
+      # Allow local files access (for reading your dataset)
+      - N8N_USER_FOLDER=/home/node/.n8n
+    volumes:
+      # Persist n8n data (workflows, credentials, etc.)
+      - n8n_data:/home/node/.n8n
+      # Mount your local files so n8n can read them
+      - ./data:/data
+
+volumes:
+  n8n_data:

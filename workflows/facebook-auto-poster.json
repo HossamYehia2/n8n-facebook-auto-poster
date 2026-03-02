@@ -1,0 +1,275 @@
+{
+  "name": "Facebook Page Auto-Poster",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 4
+            }
+          ]
+        }
+      },
+      "id": "schedule-periodic",
+      "name": "⏰ Option B - Every 4 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 540],
+      "notes": "OPTION B: Runs every X hours. Change 'hoursInterval' to adjust.\nTo use this option: Connect this node to 'Read Posts Dataset' and disconnect Option A."
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            },
+            {
+              "triggerAtHour": 13
+            },
+            {
+              "triggerAtHour": 18
+            }
+          ]
+        }
+      },
+      "id": "schedule-specific-times",
+      "name": "⏰ Option A - Specific Times",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 300],
+      "notes": "OPTION A: Runs at specific hours (9 AM, 1 PM, 6 PM). Click to edit times.\nTo add/remove times, click the node and modify the intervals."
+    },
+    {
+      "parameters": {
+        "operation": "readFile",
+        "filePath": "/data/posts.json"
+      },
+      "id": "read-file",
+      "name": "📂 Read Posts Dataset",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [480, 300],
+      "notes": "Reads your posts.json file from the /data folder.\nThis file is mounted from your local ./data directory."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse the JSON data from the file\nconst fileContent = $input.first().binary.data;\nconst text = Buffer.from(fileContent.data, 'base64').toString('utf8');\nconst posts = JSON.parse(text);\n\n// Filter only unposted items\nconst unposted = posts.filter(p => !p.posted);\n\nif (unposted.length === 0) {\n  throw new Error('No more posts to publish! Add more posts to your dataset.');\n}\n\n// Take the first unposted item\nconst nextPost = unposted[0];\n\nreturn [{\n  json: {\n    id: nextPost.id,\n    text: nextPost.text,\n    imageUrl: nextPost.imageUrl || '',\n    hasImage: !!(nextPost.imageUrl && nextPost.imageUrl.trim() !== '' && !nextPost.imageUrl.includes('example.com')),\n    allPosts: posts,\n    totalPosts: posts.length,\n    remainingPosts: unposted.length\n  }\n}];\n"
+      },
+      "id": "get-next-post",
+      "name": "🔄 Get Next Unposted",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, 300],
+      "notes": "Finds the next post that hasn't been published yet.\nSkips posts where 'posted' is true."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-image",
+              "leftValue": "={{ $json.hasImage }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      },
+      "id": "check-image",
+      "name": "🖼️ Has Image?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.1,
+      "position": [920, 300],
+      "notes": "Checks if the post has an image URL.\nIf yes → posts with photo. If no → posts text only."
+    },
+    {
+      "parameters": {
+        "operation": "post",
+        "pageId": "={{ $credentials.facebookPageId }}",
+        "message": "={{ $json.text }}",
+        "additionalFields": {
+          "link": "={{ $json.imageUrl }}"
+        }
+      },
+      "id": "fb-post-with-image",
+      "name": "📸 Post WITH Image",
+      "type": "n8n-nodes-base.facebookGraphApi",
+      "typeVersion": 1,
+      "position": [1160, 200],
+      "notes": "Posts to Facebook with an image.\nUses the Facebook Graph API.\nRequires Facebook credentials to be configured.",
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Facebook Graph API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "post",
+        "pageId": "={{ $credentials.facebookPageId }}",
+        "message": "={{ $json.text }}"
+      },
+      "id": "fb-post-text-only",
+      "name": "📝 Post TEXT Only",
+      "type": "n8n-nodes-base.facebookGraphApi",
+      "typeVersion": 1,
+      "position": [1160, 420],
+      "notes": "Posts text-only content to Facebook.\nNo image attached.\nRequires Facebook credentials to be configured.",
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Facebook Graph API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Mark the post as 'posted' in the dataset\nconst fs = require('fs');\nconst filePath = '/data/posts.json';\n\n// Read current data\nconst fileContent = fs.readFileSync(filePath, 'utf8');\nconst posts = JSON.parse(fileContent);\n\n// Find and mark the posted item\nconst postedId = $('🔄 Get Next Unposted').first().json.id;\nconst postIndex = posts.findIndex(p => p.id === postedId);\n\nif (postIndex !== -1) {\n  posts[postIndex].posted = true;\n}\n\n// Write back\nfs.writeFileSync(filePath, JSON.stringify(posts, null, 2), 'utf8');\n\nreturn [{\n  json: {\n    success: true,\n    postedId: postedId,\n    remainingPosts: posts.filter(p => !p.posted).length,\n    message: `Post #${postedId} published! ${posts.filter(p => !p.posted).length} posts remaining.`\n  }\n}];\n"
+      },
+      "id": "mark-posted",
+      "name": "✅ Mark as Posted",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1400, 300],
+      "notes": "Updates posts.json to mark the post as 'posted: true'\nso it won't be posted again."
+    },
+    {
+      "parameters": {},
+      "id": "no-op-end",
+      "name": "🏁 Done",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1620, 300],
+      "notes": "Workflow complete! The post has been published."
+    }
+  ],
+  "connections": {
+    "⏰ Option A - Specific Times": {
+      "main": [
+        [
+          {
+            "node": "📂 Read Posts Dataset",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⏰ Option B - Every 4 Hours": {
+      "main": [
+        [
+          {
+            "node": "📂 Read Posts Dataset",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📂 Read Posts Dataset": {
+      "main": [
+        [
+          {
+            "node": "🔄 Get Next Unposted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔄 Get Next Unposted": {
+      "main": [
+        [
+          {
+            "node": "🖼️ Has Image?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🖼️ Has Image?": {
+      "main": [
+        [
+          {
+            "node": "📸 Post WITH Image",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "📝 Post TEXT Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📸 Post WITH Image": {
+      "main": [
+        [
+          {
+            "node": "✅ Mark as Posted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📝 Post TEXT Only": {
+      "main": [
+        [
+          {
+            "node": "✅ Mark as Posted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "✅ Mark as Posted": {
+      "main": [
+        [
+          {
+            "node": "🏁 Done",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "timezone": "Africa/Cairo"
+  },
+  "tags": [
+    {
+      "name": "facebook",
+      "id": "1"
+    },
+    {
+      "name": "social-media",
+      "id": "2"
+    },
+    {
+      "name": "auto-poster",
+      "id": "3"
+    }
+  ]
+}
