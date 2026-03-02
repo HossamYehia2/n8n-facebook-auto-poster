@@ -50,7 +50,7 @@ Before starting, make sure you have:
 Open your terminal, navigate to this folder, and run:
 
 ```bash
-cd /Users/hossamyehia/me/n8n
+cd /Users/hossamyehia/me/n8n-facebook-auto-poster
 docker-compose up -d
 ```
 
@@ -336,7 +336,7 @@ docker-compose restart
 ## 📁 Project Structure
 
 ```
-n8n/
+n8n-facebook-auto-poster/
 ├── docker-compose.yml              # Runs n8n in Docker
 ├── data/
 │   └── posts.json                  # Your posts dataset
